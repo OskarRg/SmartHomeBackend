@@ -1,34 +1,50 @@
 import paho.mqtt.client as mqtt
 import json
 
-# Ustawienia brokera MQTT
+from measurements.utils import TOPIC_TO_FIELD_MAP
+
 mqtt_broker = "localhost"
 mqtt_port = 1883
-mqtt_topic = "sensor/measurements"
+mqtt_topic = "smarthome/energy/intensity_sensor/data"
 
-# Funkcja publikująca wiadomość
-def publish_message():
-    client = mqtt.Client()
 
-    # Połącz się z brokerem
-    client.connect(mqtt_broker, mqtt_port)
-
-    # Przykładowa wiadomość w formacie JSON
+def publish_message(client, topic):
+    topic = f"smarthome/{topic}"
     message = {
-        "room_id": 1,
-        "type": "T",
-        "value": 69.5,
-        "date": "2024-10-05T12:34:56"
+        "value": 69.5
     }
 
-    # Publikowanie wiadomości
-    client.publish(mqtt_topic, json.dumps(message), qos=1)
+    if "LED" in topic:
+        led_number = topic.split("/")[-2]
+        message = {
+            "red": int(led_number),
+            "green": 100,
+            "blue": 50
+        }
 
-    print(f"Opublikowano wiadomość: {message}")
-    # Zamknięcie połączenia
+    elif "RFID" in topic:
+        message = {
+            "value": "1234567890"
+        }
+    elif "pinpad" in topic:
+        message = {
+            "value": "D U P A"
+        }
+
+    client.publish(topic, json.dumps(message), qos=0)
+    print(f"Opublikowano wiadomość na topic: {topic} - {message}")
+
+
+def publish_to_all_topics():
+    client = mqtt.Client()
+
+    client.connect(mqtt_broker, mqtt_port)
+
+    for topic in TOPIC_TO_FIELD_MAP.keys():
+        publish_message(client, topic)
+
     client.disconnect()
 
 
 if __name__ == "__main__":
-
-    publish_message()
+    publish_to_all_topics()
