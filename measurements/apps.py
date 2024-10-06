@@ -6,6 +6,7 @@ class MeasurementsConfig(AppConfig):
     name = "measurements"
 
     def ready(self):
-        from .mqtt import start_mqtt_client
+        from .mqtt_topic_input_handler import start_mqtt_client
+
         # Uruchom klienta MQTT po uruchomieniu aplikacji Django
         start_mqtt_client()
