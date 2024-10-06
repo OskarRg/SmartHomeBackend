@@ -1,0 +1,29 @@
+# Test files for mqtt
+sub_check.py
+mqtt_publisher_for_testing.py
+# Virtualenv
+venv/
+.venv/
+env/
+.env/
+
+# Databases
+*.sqlite3
+*.db
+
+# Environment variables
+*.env
+
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
+# Ignorowanie plików IDE
+.vscode/
+.idea/
+
+# Ignorowanie plików logów
+*.log
