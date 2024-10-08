@@ -17,7 +17,11 @@ class FieldsDictionarySerializer:
 
     @staticmethod
     def serialize_current_measurement(obj: CurrentMeasurement):
-        return {"type": obj.measurement_type, "value": obj.value, "date": obj.date.isoformat()}
+        return {
+            "type": obj.measurement_type,
+            "value": obj.value,
+            "date": obj.date.isoformat(),
+        }
 
     @staticmethod
     def serialize_rgb_led_values(obj: RGBLedValues):
