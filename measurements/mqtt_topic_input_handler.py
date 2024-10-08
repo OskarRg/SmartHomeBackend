@@ -5,7 +5,12 @@ import paho.mqtt.client as mqtt
 from django.utils import timezone
 
 from measurements.models import HistoricalMeasurement
-from measurements.utils import RGBLedValues, FIELDS_DICTIONARY, TOPIC_TO_FIELD_MAP, CurrentMeasurement
+from measurements.utils import (
+    RGBLedValues,
+    FIELDS_DICTIONARY,
+    TOPIC_TO_FIELD_MAP,
+    CurrentMeasurement,
+)
 
 
 class BaseHandler:
