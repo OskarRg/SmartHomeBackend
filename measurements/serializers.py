@@ -44,9 +44,10 @@ class ControlStatusSerializer(serializers.Serializer):
 
 
 class PinValueSerializer(serializers.Serializer):
-    value = serializers.StringRelatedField(
-        required=True
+    old_pin = serializers.CharField(
+        # required=True
     )  # Check if this is correct field type
+    new_pin = serializers.CharField()
 
 
 class ControlValueSerializer(serializers.Serializer):

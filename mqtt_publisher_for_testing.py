@@ -11,15 +11,15 @@ mqtt_topic = "smarthome/energy/intensity_sensor/data"
 def publish_message(client, topic):
     topic = f"smarthome/{topic}"
     message = {
-        "value": 69.5
+        "value": 1.0
     }
 
     if "LED" in topic:
         led_number = topic.split("/")[-2]
         message = {
-            "red": int(led_number),
-            "green": 100,
-            "blue": 50
+            "red": 0,
+            "green": 0,
+            "blue": 0
         }
 
     elif "RFID" in topic:

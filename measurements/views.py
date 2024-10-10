@@ -1,5 +1,5 @@
-# TODO Handle RFID and pinpad data to be saved in the database
-# TODO Check if Historical measurements are being saved in the database
+# TODO Handle RFID to be saved in the database - it needs to activate the waiting for rfid card and then logic happens.
+# TODO Make models/tables for energy supply and endpoints OR make it as types?
 
 # TODO Add every important view from Mateusz's ticket
 # TODO Handle MQTT request to check for alarms, I need to know the values and it's ranges
@@ -144,13 +144,21 @@ class PinChangeAPIView(BaseMQTTAPIView):
         serializer = PinValueSerializer(data=request.data)
         # This needs auth - like to do this you need to give a correct pin earlier
         if serializer.is_valid():
-            FIELDS_DICTIONARY["security"]["current_pin"] = serializer.validated_data[
-                "value"
-            ]
-            return Response(
-                {"current_pin": FIELDS_DICTIONARY["security"]["current_pin"]},
-                status=status.HTTP_200_OK,
-            )
+            if (
+                serializer.validated_data["old_pin"]
+                == FIELDS_DICTIONARY["security"]["current_pin"]
+            ):
+                FIELDS_DICTIONARY["security"]["current_pin"] = (
+                    serializer.validated_data["new_pin"]
+                )
+                return Response(
+                    {"current_pin": FIELDS_DICTIONARY["security"]["current_pin"]},
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                return Response(
+                    serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                )  # TODO Handle better error
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -162,10 +170,55 @@ class LightSensitivityChangeAPIView(BaseMQTTAPIView):
                 serializer.validated_data["value"]
             )
             return Response(
-                {"current_pin": FIELDS_DICTIONARY["security"]["current_pin"]},
+                {
+                    "light_sensor_sensitivity": FIELDS_DICTIONARY["settings"][
+                        "light_sensor_sensitivity"
+                    ]
+                },
                 status=status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SetAlarmAPIView(BaseMQTTAPIView):
+    def post(self, request):
+        serializer = ControlValueSerializer(data=request.data)
+        if serializer.is_valid():
+            FIELDS_DICTIONARY["settings"]["alarm_time"] = serializer.validated_data[
+                "value"
+            ]
+            return Response(
+                {"alarm_time": FIELDS_DICTIONARY["settings"]["alarm_time"]},
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ArmedAlarm(BaseMQTTAPIView):
+    def post(self, request):
+        serializer = ControlStatusSerializer(data=request.data)
+        if serializer.is_valid():
+            FIELDS_DICTIONARY["security"]["is_alarm_armed"] = serializer.validated_data[
+                "value"
+            ]
+            return Response(
+                {"alarm_time": FIELDS_DICTIONARY["settings"]["is_alarm_armed"]},
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TurnOffBuzzer(BaseMQTTAPIView):
+    def post(self, request):
+        self.publish_mqtt_message(
+            f"security/buzzer/status",
+            {"value": not FIELDS_DICTIONARY["security"]["buzzer_control_status"]},
+        )
+
+        return Response(
+            {"buzzer": "off or on idk"},
+            status=status.HTTP_200_OK,
+        )
 
 
 class FanControlAPIView(BaseMQTTAPIView):

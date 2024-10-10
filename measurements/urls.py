@@ -41,8 +41,18 @@ urlpatterns = [
         name="light-setting",
     ),
     path(
-        "security/change_current_pin/",
+        "security/change-current-pin/",
         views.PinChangeAPIView.as_view(),
         name="change-current-pin",
+    ),
+    path(
+        "settings/set-alarm/",
+        views.SetAlarmAPIView.as_view(),
+        name="set-alarm",
+    ),
+    path(
+        "settings/set-armed-alarm/",
+        views.ArmedAlarm.as_view(),
+        name="set-armed-alarm",
     ),
 ]

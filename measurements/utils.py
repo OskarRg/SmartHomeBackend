@@ -2,6 +2,7 @@ MQTT_BROKER = "localhost"
 MQTT_PORT = 1883
 
 
+# TODO NAPRAWIĆ MAPPING - FIELDS z TOPICAMI - ZROBIĆ SCHEMAT DLA DEBILI
 class RGBLedValues:
     def __init__(self, led_number: int, red: int, green: int, blue: int):
         self.led_number = led_number
@@ -36,29 +37,20 @@ FIELDS_DICTIONARY: dict[str, dict[str, str | float | RGBLedValues]] = {
         "fan_1_control_status": None,
         "fan_2_control_status": None,
         "is_solar_in_safe_position": None,
-        "gate_control": {
-            "open": None,
-            "close": None,
-            "in_progress": None,
-            "stopped": None,
-        },
+        "gate_control": None,  # 0 -closed, 1 - open, 2 - progress
         "lock_status": None,
-        "door_servo_control": {
-            "open": None,
-            "close": None,
-            "in_progress": None,
-            "stopped": None,
-        },
+        "door_control": None,  # 0 -closed, 1 - open, 2 - progress
     },
     "security": {
         "tilt_sensor_status": {"value": None, "alarm_on": False},
         "pir_sensor_1_status": {"value": None, "alarm_on": False},
         "pir_sensor_2_status": {"value": None, "alarm_on": False},
         "radiation_sensitive_status": {"value": None, "alarm_on": False},
-        "buzzer_control_status": None,
+        "buzzer_control_status": {"value": None, "alarm_on": False},
         "flame_sensor_status": {"value": None, "alarm_on": False},
         # "rfid_data": "",  # TODO This field will need to reset after each read - (in view after reading)
-        "current_pin": "",
+        "current_pin": "1111",
+        "is_alarm_armed": False,
     },
     "energy": {
         "leds": {
