@@ -43,6 +43,12 @@ class ControlStatusSerializer(serializers.Serializer):
     value = serializers.BooleanField(required=True)
 
 
+class PinValueSerializer(serializers.Serializer):
+    value = serializers.StringRelatedField(
+        required=True
+    )  # Check if this is correct field type
+
+
 class ControlValueSerializer(serializers.Serializer):
     value = serializers.FloatField(required=True)
 
