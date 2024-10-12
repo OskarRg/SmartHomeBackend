@@ -14,10 +14,35 @@ class HistoricalMeasurement(models.Model):
     date = models.DateTimeField()
 
 
+class EnergyConsumptionMeasurement(models.Model):
+    MEASUREMENT_TYPES = [
+        ("B", "Bus"),
+        ("C", "Current"),
+        ("P", "Power"),
+        ("S", "Supply"),
+    ]
+
+    type = models.CharField(max_length=10, choices=MEASUREMENT_TYPES)
+    value = models.FloatField()
+    date = models.DateTimeField()
+
+
+class EnergyProductionMeasurement(models.Model):
+    MEASUREMENT_TYPES = [
+        ("B", "Bus"),
+        ("C", "Current"),
+        ("P", "Power"),
+        ("S", "Supply"),
+    ]
+
+    type = models.CharField(max_length=10, choices=MEASUREMENT_TYPES)
+    value = models.FloatField()
+    date = models.DateTimeField()
+
+
 class RFIDCard(models.Model):
-    card_id = models.CharField(max_length=100, unique=True)
     owner = models.CharField(max_length=100)
     code = models.CharField(max_length=100)
 
     def __str__(self):
-        return self.card_id
+        return f"{self.code} - {self.owner}"

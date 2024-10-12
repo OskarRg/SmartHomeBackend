@@ -24,7 +24,7 @@ def publish_message(client, topic):
 
     elif "RFID" in topic:
         message = {
-            "value": "1234567890"
+            "value": "1234567899"
         }
     elif "pinpad" in topic:
         message = {
@@ -42,6 +42,7 @@ def publish_to_all_topics():
 
     for topic in TOPIC_TO_FIELD_MAP.keys():
         publish_message(client, topic)
+        # publish_message(client, "security/RFID/data") test only lock status after rfid card was correctly published
 
     client.disconnect()
 

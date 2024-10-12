@@ -4,12 +4,15 @@ import json
 import paho.mqtt.client as mqtt
 from django.utils import timezone
 
-from measurements.models import HistoricalMeasurement
+from measurements.models import HistoricalMeasurement, RFIDCard
 from measurements.utils import (
     RGBLedValues,
     FIELDS_DICTIONARY,
     TOPIC_TO_FIELD_MAP,
     CurrentMeasurement,
+    rfid_manager,
+    MQTT_BROKER,
+    MQTT_PORT,
 )
 
 
@@ -17,11 +20,20 @@ class BaseHandler:
     def handle(self, topic: str, payload: dict):
         raise NotImplementedError("Handler must implement the 'handle' method")
 
+    @staticmethod
+    def publish_mqtt_message(topic, payload):
+        client = mqtt.Client()
+        client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        client.loop_start()
+        client.publish(topic, json.dumps(payload), qos=1)
+        client.loop_stop()
+
 
 class DefaultHandler(BaseHandler):
     def handle(self, topic: str, payload: dict):
         value = payload.get("value")
-        if not value:
+        print(payload)
+        if value in (None, "") and not isinstance(value, int):
             print(f"The value from the topic {topic} is missing")
             return
 
@@ -53,6 +65,7 @@ class LEDHandler(BaseHandler):
         FIELDS_DICTIONARY["energy"]["leds"][str(led_number)] = rgb_value
 
 
+"""
 class RFIDHandler(BaseHandler):
     def handle(self, topic: str, payload: dict):
         value = payload["value"]
@@ -60,6 +73,42 @@ class RFIDHandler(BaseHandler):
             print(f"No RFID value from the topic: {topic}")
             return
         FIELDS_DICTIONARY["security"]["rfid_data"] = value
+"""
+
+
+class RFIDHandler(BaseHandler):
+    def handle(self, topic: str, payload: dict):
+        code = payload.get("value")
+
+        if code is None:
+            print(f"RFID code is missing from the topic: {topic}")
+            return
+
+        pending_rfid_owner = rfid_manager.get_pending_rfid_owner()
+
+        rfid_card = RFIDCard.objects.filter(code=code).first()
+        # TODO Is every card code unique? If not, we need to check for owner.
+
+        if rfid_card:
+            print(f"RFID card {code} recognized. Unlocking the door...")
+
+            self.publish_mqtt_message(
+                "smarthome/control/door/lock/status", {"value": 0}
+            )
+        else:
+            print("rfid_card", rfid_card)
+            if pending_rfid_owner:
+                try:
+                    RFIDCard.objects.create(owner=pending_rfid_owner, code=code)
+                    print(
+                        f"Added new RFID card with code {code} for owner {pending_rfid_owner}."
+                    )
+
+                    rfid_manager.set_pending_rfid_owner(None)
+                except Exception as e:
+                    print(f"Error saving RFID card: {e}")
+            else:
+                print(f"No pending RFID request. Ignoring card with code {code}.")
 
 
 def save_measurement_to_db(measurement_type: str, value: float):
@@ -106,6 +155,7 @@ class EnvironmentMeasurementHandler(BaseHandler):
 
 
 TOPIC_HANDLER_MAP = {
+    "security/RFID/data": RFIDHandler(),
     "energy/LED/1/data": LEDHandler(),
     "energy/LED/2/data": LEDHandler(),
     "energy/LED/3/data": LEDHandler(),
