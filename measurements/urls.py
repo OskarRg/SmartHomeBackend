@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+
+# TODO Sort the urls in alphabetical order
 urlpatterns = [
     path(
         "historical/type/<str:measurement_type>/",
@@ -34,13 +36,23 @@ urlpatterns = [
         name="fan-control",
     ),
     path(
-        "control/servo-vertical/",
-        views.ServoVerticalControlAPIView.as_view(),
-        name="servo-vertical-control",
+        "settings/light-sensitivity/",
+        views.LightSensitivityChangeAPIView.as_view(),
+        name="light-setting",
     ),
     path(
-        "control/servo-horizontal/",
-        views.ServoHorizontalControlAPIView.as_view(),
-        name="servo-horizontal-control",
+        "security/change-current-pin/",
+        views.PinChangeAPIView.as_view(),
+        name="change-current-pin",
+    ),
+    path(
+        "settings/set-alarm/",
+        views.SetAlarmAPIView.as_view(),
+        name="set-alarm",
+    ),
+    path(
+        "settings/set-armed-alarm/",
+        views.ArmedAlarm.as_view(),
+        name="set-armed-alarm",
     ),
 ]

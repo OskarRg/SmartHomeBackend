@@ -2,6 +2,7 @@ MQTT_BROKER = "localhost"
 MQTT_PORT = 1883
 
 
+# TODO NAPRAWIĆ MAPPING - FIELDS z TOPICAMI - ZROBIĆ SCHEMAT DLA DEBILI
 class RGBLedValues:
     def __init__(self, led_number: int, red: int, green: int, blue: int):
         self.led_number = led_number
@@ -35,27 +36,23 @@ FIELDS_DICTIONARY: dict[str, dict[str, str | float | RGBLedValues]] = {
     "control": {
         "fan_1_control_status": None,
         "fan_2_control_status": None,
-        "servo_vertical_control": None,
-        "servo_horizontal_control": None,
-        "gate_control": None,
+        "is_solar_in_safe_position": None,
+        "gate_control": None,  # 0 -closed, 1 - open, 2 - progress
         "lock_status": None,
-        "door_servo_control": None,
+        "door_control": None,  # 0 -closed, 1 - open, 2 - progress
     },
     "security": {
-        "tilt_sensor_status": None,
-        "pir_sensor_1_status": None,
-        "pir_sensor_2_status": None,
-        "radiation_sensitive_status": None,
-        "buzzer_control_status": None,
-        "flame_sensor_status": None,
-        "rfid_data": "",  # TODO This field will need to reset after each read - (in view after reading)
-        "pinpad_data": "",
+        "tilt_sensor_status": {"value": None, "alarm_on": False},
+        "pir_sensor_1_status": {"value": None, "alarm_on": False},
+        "pir_sensor_2_status": {"value": None, "alarm_on": False},
+        "radiation_sensitive_status": {"value": None, "alarm_on": False},
+        "buzzer_control_status": {"value": None, "alarm_on": False},
+        "flame_sensor_status": {"value": None, "alarm_on": False},
+        # "rfid_data": "",  # TODO This field will need to reset after each read - (in view after reading)
+        "current_pin": "1111",
+        "is_alarm_armed": False,
     },
     "energy": {
-        "current_data": None,
-        "supply_data": None,
-        "bus_data": None,
-        "power_data": None,
         "leds": {
             "1": None,
             "2": None,
@@ -64,13 +61,30 @@ FIELDS_DICTIONARY: dict[str, dict[str, str | float | RGBLedValues]] = {
             "5": None,
             "6": None,
         },
+        "energy_consumption": {
+            "current_data": None,
+            "supply_data": None,  # This might not be right or not work
+            "bus_data": None,  # This might not be right or not work
+            "power_data": None,
+        },
+        "energy_production": {
+            "current_data": None,
+            "supply_data": None,  # This might not be right or not work
+            "bus_data": None,  # This might not be right or not work
+            "power_data": None,
+        },
         "intensity_sensor_data": None,
     },
     "environment": {
         "temperature_data": None,
         "humidity_data": None,
         "pressure_data": None,
-        "gas_data": None,
+        "light_intensity_data": None,  # I don't know what will actually be here, ask someone who is in charge of this
+        "gas_data": None,  # I don't know what will actually be here, ask someone who is in charge of this
+    },
+    "settings": {
+        "alarm_time": 30,  # in seconds
+        "light_sensor_sensitivity": 50,  # in ???, ask someone who is in charge of this
     },
 }
 
