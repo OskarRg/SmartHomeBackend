@@ -10,6 +10,16 @@ urlpatterns = [
         name="historical_measurements_list",
     ),
     path(
+        "consumption/type/<str:measurement_type>/",
+        views.EnergyConsumptionListView.as_view(),
+        name="consumption_measurements_list",
+    ),
+    path(
+        "production/type/<str:measurement_type>/",
+        views.EnergyProductionAPIView.as_view(),
+        name="production_measurements_list",
+    ),
+    path(
         "historical/<int:pk>/",
         views.HistoricalMeasurementDetailView.as_view(),
         name="historical_measurement_detail",
@@ -36,6 +46,16 @@ urlpatterns = [
         name="fan-control",
     ),
     path(
+        "control/solar-position/",
+        views.SolarPanelPositionAPIView.as_view(),
+        name="solar-control",
+    ),
+    path(
+        "security/buzzer/",
+        views.TurnOffBuzzer.as_view(),
+        name="buzzer-control",
+    ),
+    path(
         "settings/light-sensitivity/",
         views.LightSensitivityChangeAPIView.as_view(),
         name="light-setting",
@@ -54,5 +74,10 @@ urlpatterns = [
         "settings/set-armed-alarm/",
         views.ArmedAlarm.as_view(),
         name="set-armed-alarm",
+    ),
+    path(
+        "security/set-rfid/",
+        views.AddRFIDAPIView.as_view(),
+        name="set-rfid",
     ),
 ]

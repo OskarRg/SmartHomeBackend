@@ -1,6 +1,10 @@
 from rest_framework import serializers
 
-from .models import HistoricalMeasurement
+from .models import (
+    HistoricalMeasurement,
+    EnergyConsumptionMeasurement,
+    EnergyProductionMeasurement,
+)
 from .utils import RGBLedValues, CurrentMeasurement
 
 
@@ -54,13 +58,21 @@ class ControlValueSerializer(serializers.Serializer):
     value = serializers.FloatField(required=True)
 
 
-class CurrentMeasurementSerializer(serializers.ModelSerializer):
+class BaseMeasurementSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CurrentMeasurement
-        fields = "__all__"
+        fields = ["type", "value", "date"]
 
 
-class HistoricalMeasurementSerializer(serializers.ModelSerializer):
-    class Meta:
+class HistoricalMeasurementSerializer(BaseMeasurementSerializer):
+    class Meta(BaseMeasurementSerializer.Meta):
         model = HistoricalMeasurement
-        fields = "__all__"
+
+
+class EnergyConsumptionMeasurementSerializer(BaseMeasurementSerializer):
+    class Meta(BaseMeasurementSerializer.Meta):
+        model = EnergyConsumptionMeasurement
+
+
+class EnergyProductionMeasurementSerializer(BaseMeasurementSerializer):
+    class Meta(BaseMeasurementSerializer.Meta):
+        model = EnergyProductionMeasurement

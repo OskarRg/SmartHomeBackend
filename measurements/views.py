@@ -7,8 +7,6 @@
 """
 endpoints to add
 
-# pin change (url)
-# light sensitivity (url)
 # mqtt to buzzer
 # alarm_handling (on/off)
 # rfid
@@ -16,6 +14,8 @@ endpoints to add
 """
 
 import json
+import threading
+import time
 
 import paho.mqtt.client as mqtt
 from django_filters.rest_framework import DjangoFilterBackend
@@ -24,18 +24,30 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .filters import HistoricalMeasurementFilter
-from .models import HistoricalMeasurement
+from .filters import (
+    HistoricalMeasurementFilter,
+    EnergyConsumptionMeasurementFilter,
+    EnergyProductionMeasurementFilter,
+)
+from .models import (
+    HistoricalMeasurement,
+    EnergyConsumptionMeasurement,
+    EnergyProductionMeasurement,
+)
 from .serializers import (
-    CurrentMeasurementSerializer,
     HistoricalMeasurementSerializer,
     FieldsDictionarySerializer,
     RGBLedValuesSerializer,
     ControlValueSerializer,
     ControlStatusSerializer,
     PinValueSerializer,
+    EnergyConsumptionMeasurementSerializer,
+    EnergyProductionMeasurementSerializer,
 )
-from .utils import FIELDS_DICTIONARY, MQTT_BROKER, MQTT_PORT, RGBLedValues
+from .utils import FIELDS_DICTIONARY, MQTT_BROKER, MQTT_PORT, RGBLedValues, rfid_manager
+
+pending_rfid_owner = None
+rfid_timeout_thread = None
 
 
 class HistoricalMeasurementsListView(generics.ListAPIView):
@@ -50,9 +62,28 @@ class HistoricalMeasurementsListView(generics.ListAPIView):
         return HistoricalMeasurement.objects.filter(type=measurement_type)
 
 
-class HistoricalMeasurementDetailView(generics.RetrieveDestroyAPIView):
-    queryset = HistoricalMeasurement.objects.all()
-    serializer_class = HistoricalMeasurementSerializer
+class EnergyConsumptionListView(generics.ListAPIView):
+    serializer_class = EnergyConsumptionMeasurementSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = EnergyConsumptionMeasurementFilter
+    ordering_fields = ["date"]
+
+    def get_queryset(self):
+        measurement_type = self.kwargs["measurement_type"]
+
+        return EnergyConsumptionMeasurement.objects.filter(type=measurement_type)
+
+
+class EnergyProductionListView(generics.ListAPIView):
+    serializer_class = EnergyProductionMeasurementSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = EnergyProductionMeasurementFilter
+    ordering_fields = ["date"]
+
+    def get_queryset(self):
+        measurement_type = self.kwargs["measurement_type"]
+
+        return EnergyProductionMeasurement.objects.filter(type=measurement_type)
 
 
 class FieldsDictionaryView(APIView):
@@ -142,7 +173,6 @@ class DoorServoControlAPIView(BaseMQTTAPIView):
 class PinChangeAPIView(BaseMQTTAPIView):
     def post(self, request):
         serializer = PinValueSerializer(data=request.data)
-        # This needs auth - like to do this you need to give a correct pin earlier
         if serializer.is_valid():
             if (
                 serializer.validated_data["old_pin"]
@@ -259,3 +289,21 @@ class SolarPanelPositionAPIView(BaseMQTTAPIView):
                 status=status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AddRFIDAPIView(BaseMQTTAPIView):
+    def post(self, request):
+        owner = request.data.get("owner")
+        if not owner:
+            return Response({"error": "Owner field is required"}, status=400)
+
+        # Zapisanie właściciela w instancji RFIDManager
+        rfid_manager.set_pending_rfid_owner(owner)
+
+        # Możemy zwrócić odpowiedź, że czekamy na przyłożenie karty RFID
+        return Response(
+            {
+                "message": f"Waiting for RFID card for {owner} (timeout in 60 seconds)..."
+            },
+            status=200,
+        )

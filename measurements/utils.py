@@ -1,3 +1,6 @@
+import threading
+import time
+
 MQTT_BROKER = "localhost"
 MQTT_PORT = 1883
 
@@ -90,6 +93,7 @@ FIELDS_DICTIONARY: dict[str, dict[str, str | float | RGBLedValues]] = {
 
 
 TOPIC_TO_FIELD_MAP = {
+    "settings/light_sensor_sensitivity/data": ["settings", "light_sensor_sensitivity"],
     "energy/intensity_sensor/data": ["energy", "intensity_sensor_data"],
     "energy/energy_consumption/current/data": ["energy", "current_data"],
     "energy/energy_consumption/power/data": ["energy", "power_data"],
@@ -111,19 +115,44 @@ TOPIC_TO_FIELD_MAP = {
     "security/tilt_sensor/status": ["security", "tilt_sensor_status"],
     "control/fan/1/status": ["control", "fan_1_control_status"],
     "control/fan/2/status": ["control", "fan_2_control_status"],
-    "control/solar_tracker/servo_horizontal/control": [
+    "control/solar_tracker/is_solar_in_safe_position/control": [
         "control",
-        "servo_horizontal_control",
-    ],
-    "control/solar_tracker/servo_vertical/control": [
-        "control",
-        "servo_vertical_control",
+        "is_solar_in_safe_position",
     ],
     "control/gate/motor/control": ["control", "gate_control"],
     "control/door/lock/status": ["control", "lock_status"],
-    "control/door/servo/control": ["control", "door_servo_control"],
+    "control/door/servo/control": ["control", "door_control"],
     "environment/multi_sensor/temperature/data": ["environment", "temperature_data"],
     "environment/multi_sensor/humidity/data": ["environment", "humidity_data"],
     "environment/multi_sensor/pressure/data": ["environment", "pressure_data"],
     "environment/gas_sensor/data": ["environment", "gas_data"],
 }
+
+
+class RFIDManager:
+    def __init__(self):
+        self.pending_rfid_owner = None
+        self.rfid_timeout_thread = None
+
+    def set_pending_rfid_owner(self, owner):
+        self.pending_rfid_owner = owner
+        print(f"Awaiting RFID card for owner: {owner}")
+
+        # Uruchomienie wątku, który anuluje oczekiwanie po 60 sekundach
+        if self.rfid_timeout_thread is None or not self.rfid_timeout_thread.is_alive():
+            self.rfid_timeout_thread = threading.Thread(
+                target=self._reset_pending_rfid, args=(60,)
+            )
+            self.rfid_timeout_thread.start()
+
+    def get_pending_rfid_owner(self):
+        return self.pending_rfid_owner
+
+    def _reset_pending_rfid(self, timeout):
+        time.sleep(timeout)
+        self.pending_rfid_owner = None
+        print("RFID request timed out. No card was provided in time.")
+
+
+# Utworzenie instancji RFIDManager
+rfid_manager = RFIDManager()
