@@ -16,13 +16,8 @@ urlpatterns = [
     ),
     path(
         "production/type/<str:measurement_type>/",
-        views.EnergyProductionAPIView.as_view(),
+        views.EnergyProductionListView.as_view(),
         name="production_measurements_list",
-    ),
-    path(
-        "historical/<int:pk>/",
-        views.HistoricalMeasurementDetailView.as_view(),
-        name="historical_measurement_detail",
     ),
     path(
         "fields-dictionary/",

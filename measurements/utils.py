@@ -35,7 +35,21 @@ class CurrentMeasurement:
     ]
 
 
-FIELDS_DICTIONARY: dict[str, dict[str, str | float | RGBLedValues]] = {
+class EnergyMeasurement:
+    def __init__(self, measurement_type, value, date):
+        self.measurement_type = measurement_type
+        self.value = value
+        self.date = date
+
+    MEASUREMENT_TYPES = [
+        ("B", "Bus"),
+        ("C", "Current"),
+        ("P", "Power"),
+        ("S", "Supply"),
+    ]
+
+
+FIELDS_DICTIONARY: dict[str, dict[str, str | float | RGBLedValues | CurrentMeasurement | EnergyMeasurement]] = {
     "control": {
         "fan_1_control_status": None,
         "fan_2_control_status": None,
@@ -95,10 +109,14 @@ FIELDS_DICTIONARY: dict[str, dict[str, str | float | RGBLedValues]] = {
 TOPIC_TO_FIELD_MAP = {
     "settings/light_sensor_sensitivity/data": ["settings", "light_sensor_sensitivity"],
     "energy/intensity_sensor/data": ["energy", "intensity_sensor_data"],
-    "energy/energy_consumption/current/data": ["energy", "current_data"],
-    "energy/energy_consumption/power/data": ["energy", "power_data"],
-    "energy/energy_consumption/voltage/supply/data": ["energy", "supply_data"],
-    "energy/energy_consumption/voltage/bus/data": ["energy", "bus_data"],
+    "energy/energy_consumption/current/data": ["energy", "energy_consumption", "current_data"],
+    "energy/energy_consumption/power/data": ["energy", "energy_consumption", "power_data"],
+    "energy/energy_consumption/voltage/supply/data": ["energy", "energy_consumption", "supply_data"],
+    "energy/energy_consumption/voltage/bus/data": ["energy", "energy_consumption", "bus_data"],
+    "energy/energy_production/current/data": ["energy", "energy_production", "current_data"],
+    "energy/energy_production/power/data": ["energy", "energy_production", "power_data"],
+    "energy/energy_production/voltage/supply/data": ["energy", "energy_production", "supply_data"],
+    "energy/energy_production/voltage/bus/data": ["energy", "energy_production", "bus_data"],
     "energy/LED/1/data": ["energy", "leds", "1"],
     "energy/LED/2/data": ["energy", "leds", "2"],
     "energy/LED/3/data": ["energy", "leds", "3"],

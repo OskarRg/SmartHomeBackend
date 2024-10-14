@@ -14,6 +14,13 @@ def publish_message(client, topic):
         "value": 1.0
     }
 
+    # Dla twoich testów, możesz sobie tutaj pozmieniać topic i posprawdzać.
+    if "security/buzzer/status" in topic:
+        message = {
+            "value": True,
+            "alarm_on": True
+        }
+
     if "LED" in topic:
         led_number = topic.split("/")[-2]
         message = {
@@ -43,7 +50,6 @@ def publish_to_all_topics():
     for topic in TOPIC_TO_FIELD_MAP.keys():
         publish_message(client, topic)
         # publish_message(client, "security/RFID/data") test only lock status after rfid card was correctly published
-
     client.disconnect()
 
 

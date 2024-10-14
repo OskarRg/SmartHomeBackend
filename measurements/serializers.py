@@ -5,7 +5,7 @@ from .models import (
     EnergyConsumptionMeasurement,
     EnergyProductionMeasurement,
 )
-from .utils import RGBLedValues, CurrentMeasurement
+from .utils import RGBLedValues, CurrentMeasurement, EnergyMeasurement
 
 
 class FieldsDictionarySerializer:
@@ -14,6 +14,8 @@ class FieldsDictionarySerializer:
             return {key: self.serialize(value) for key, value in data.items()}
         elif isinstance(data, CurrentMeasurement):
             return self.serialize_current_measurement(data)
+        elif isinstance(data, EnergyMeasurement):
+            return self.serialize_energy_measurement(data)
         elif isinstance(data, RGBLedValues):
             return self.serialize_rgb_led_values(data)
         else:
@@ -21,6 +23,14 @@ class FieldsDictionarySerializer:
 
     @staticmethod
     def serialize_current_measurement(obj: CurrentMeasurement):
+        return {
+            "type": obj.measurement_type,
+            "value": obj.value,
+            "date": obj.date.isoformat(),
+        }
+
+    @staticmethod
+    def serialize_energy_measurement(obj: EnergyMeasurement):
         return {
             "type": obj.measurement_type,
             "value": obj.value,

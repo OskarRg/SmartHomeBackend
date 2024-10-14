@@ -3,8 +3,10 @@ import json
 
 import paho.mqtt.client as mqtt
 from django.utils import timezone
+from django.db import models
 
-from measurements.models import HistoricalMeasurement, RFIDCard
+from measurements.models import HistoricalMeasurement, RFIDCard, EnergyProductionMeasurement, \
+    EnergyConsumptionMeasurement
 from measurements.utils import (
     RGBLedValues,
     FIELDS_DICTIONARY,
@@ -12,7 +14,7 @@ from measurements.utils import (
     CurrentMeasurement,
     rfid_manager,
     MQTT_BROKER,
-    MQTT_PORT,
+    MQTT_PORT, EnergyMeasurement,
 )
 
 
@@ -31,6 +33,7 @@ class BaseHandler:
 
 class DefaultHandler(BaseHandler):
     def handle(self, topic: str, payload: dict):
+        print("DEFAULT HANDLER")
         value = payload.get("value")
         print(payload)
         if value in (None, "") and not isinstance(value, int):
@@ -51,6 +54,7 @@ class DefaultHandler(BaseHandler):
 
 class SecurityHandler(BaseHandler):
     def handle(self, topic: str, payload: dict):
+        print("SECURITY HANDLER")
         value = payload.get("value")
         alarm_on = payload.get("alarm_on")
         print(payload)
@@ -65,6 +69,8 @@ class SecurityHandler(BaseHandler):
 
         current_dict = FIELDS_DICTIONARY
         for key in field_path[:-1]:
+            print("key: ", key)
+
             current_dict = current_dict[key]
 
         current_dict[field_path[-1]] = {"value": value, "alarm_on": alarm_on}
@@ -132,8 +138,7 @@ class RFIDHandler(BaseHandler):
                 print(f"No pending RFID request. Ignoring card with code {code}.")
 
 
-def save_measurement_to_db(measurement_type: str, value: float):
-
+def save_measurement_to_db(measurement_type: str, value: float, model: type[models.Model]):
     if measurement_type is None:
         print(f"Measurement type {measurement_type} is not recognized for database.")
         return
@@ -142,7 +147,7 @@ def save_measurement_to_db(measurement_type: str, value: float):
 
         naive_datetime = datetime.datetime.now()
         aware_datetime = timezone.make_aware(naive_datetime)
-        HistoricalMeasurement.objects.create(
+        model.objects.create(
             type=measurement_type, value=value, date=aware_datetime
         )
     except Exception as e:
@@ -172,7 +177,59 @@ class EnvironmentMeasurementHandler(BaseHandler):
             current_dict = current_dict[key]
 
         current_dict[field_path[-1]] = measurement
-        save_measurement_to_db(measurement_type, value)
+        save_measurement_to_db(measurement_type, value, model=HistoricalMeasurement)
+
+
+class EnergyProductionMeasurementHandler(BaseHandler):
+    def handle(self, topic: str, payload: dict):
+        value = payload.get("value")
+        measurement_type = topic.split("/")[-2]
+        measurement_type = SENSOR_TO_TYPE_MAP[measurement_type]
+        if value is None:
+            print(f"No value from the topic: {topic}")
+            return
+
+        field_path = TOPIC_TO_FIELD_MAP[topic]
+        if field_path is None:
+            print(f"Topic {topic} is not handled.")
+            return
+        naive_datetime = datetime.datetime.now()
+        aware_datetime = timezone.make_aware(naive_datetime)
+        measurement = EnergyMeasurement(
+            measurement_type=measurement_type, value=value, date=aware_datetime
+        )
+        current_dict = FIELDS_DICTIONARY
+        for key in field_path[:-1]:
+            current_dict = current_dict[key]
+
+        current_dict[field_path[-1]] = measurement
+        save_measurement_to_db(measurement_type, value, model=EnergyProductionMeasurement)
+
+
+class EnergyConsumptionMeasurementHandler(BaseHandler):
+    def handle(self, topic: str, payload: dict):
+        value = payload.get("value")
+        measurement_type = topic.split("/")[-2]
+        measurement_type = SENSOR_TO_TYPE_MAP[measurement_type]
+        if value is None:
+            print(f"No value from the topic: {topic}")
+            return
+
+        field_path = TOPIC_TO_FIELD_MAP[topic]
+        if field_path is None:
+            print(f"Topic {topic} is not handled.")
+            return
+        naive_datetime = datetime.datetime.now()
+        aware_datetime = timezone.make_aware(naive_datetime)
+        measurement = EnergyMeasurement(
+            measurement_type=measurement_type, value=value, date=aware_datetime
+        )
+        current_dict = FIELDS_DICTIONARY
+        for key in field_path[:-1]:
+            current_dict = current_dict[key]
+
+        current_dict[field_path[-1]] = measurement
+        save_measurement_to_db(measurement_type, value, model=EnergyConsumptionMeasurement)
 
 
 TOPIC_HANDLER_MAP = {
@@ -187,12 +244,20 @@ TOPIC_HANDLER_MAP = {
     "environment/multi_sensor/humidity/data": EnvironmentMeasurementHandler(),
     "environment/multi_sensor/pressure/data": EnvironmentMeasurementHandler(),
     "environment/gas_sensor/data": EnvironmentMeasurementHandler(),
-    "tilt_sensor_status": SecurityHandler(),
-    "radiation_sensitive_status": SecurityHandler(),
-    "buzzer_control_status": SecurityHandler(),
-    "flame_sensor_status": SecurityHandler(),
-    "pir_sensor_1_status": SecurityHandler(),
-    "pir_sensor_2_status": SecurityHandler(),
+    "energy/energy_consumption/current/data": EnergyConsumptionMeasurementHandler(), # TU
+    "energy/energy_consumption/power/data": EnergyConsumptionMeasurementHandler(),
+    "energy/energy_consumption/voltage/supply/data": EnergyConsumptionMeasurementHandler(),
+    "energy/energy_consumption/voltage/bus/data": EnergyConsumptionMeasurementHandler(),
+    "energy/energy_production/current/data": EnergyProductionMeasurementHandler(),
+    "energy/energy_production/power/data": EnergyProductionMeasurementHandler(),
+    "energy/energy_production/voltage/supply/data": EnergyProductionMeasurementHandler(),
+    "energy/energy_production/voltage/bus/data": EnergyProductionMeasurementHandler(),
+    "security/tilt_sensor/status": SecurityHandler(),
+    "security/radiation_sensitive/status": SecurityHandler(),
+    "security/buzzer/status": SecurityHandler(),
+    "security/flame_sensor/status": SecurityHandler(),
+    "security/PIR/1/status": SecurityHandler(),
+    "security/PIR/2/status": SecurityHandler(),
 }
 
 SENSOR_TO_TYPE_MAP = {
@@ -200,6 +265,10 @@ SENSOR_TO_TYPE_MAP = {
     "humidity": "H",
     "pressure": "P",
     "gas_sensor": "G",
+    "bus": "B",
+    "current": "C",
+    "power": "P",
+    "supply": "S",
 }
 
 
