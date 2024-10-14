@@ -49,6 +49,27 @@ class DefaultHandler(BaseHandler):
         current_dict[field_path[-1]] = value
 
 
+class SecurityHandler(BaseHandler):
+    def handle(self, topic: str, payload: dict):
+        value = payload.get("value")
+        alarm_on = payload.get("alarm_on")
+        print(payload)
+        if value in (None, "") and not isinstance(value, int):
+            print(f"The value from the topic {topic} is missing")
+            return
+
+        field_path = TOPIC_TO_FIELD_MAP[topic]
+        if field_path is None:
+            print(f"Topic {topic} is not handled.")
+            return
+
+        current_dict = FIELDS_DICTIONARY
+        for key in field_path[:-1]:
+            current_dict = current_dict[key]
+
+        current_dict[field_path[-1]] = {"value": value, "alarm_on": alarm_on}
+
+
 class LEDHandler(BaseHandler):
     def handle(self, topic: str, payload: dict):
         led_number = int(topic.split("/")[-2])
@@ -166,6 +187,12 @@ TOPIC_HANDLER_MAP = {
     "environment/multi_sensor/humidity/data": EnvironmentMeasurementHandler(),
     "environment/multi_sensor/pressure/data": EnvironmentMeasurementHandler(),
     "environment/gas_sensor/data": EnvironmentMeasurementHandler(),
+    "tilt_sensor_status": SecurityHandler(),
+    "radiation_sensitive_status": SecurityHandler(),
+    "buzzer_control_status": SecurityHandler(),
+    "flame_sensor_status": SecurityHandler(),
+    "pir_sensor_1_status": SecurityHandler(),
+    "pir_sensor_2_status": SecurityHandler(),
 }
 
 SENSOR_TO_TYPE_MAP = {
