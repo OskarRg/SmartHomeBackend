@@ -232,7 +232,7 @@ class ArmedAlarm(BaseMQTTAPIView):
                 "value"
             ]
             return Response(
-                {"alarm_time": FIELDS_DICTIONARY["settings"]["is_alarm_armed"]},
+                {"is_alarm_armed": FIELDS_DICTIONARY["security"]["is_alarm_armed"]},
                 status=status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
