@@ -161,8 +161,8 @@ class DoorServoControlAPIView(BaseMQTTAPIView):
             )
             return Response(
                 {
-                    "door_servo_control": FIELDS_DICTIONARY["control"][
-                        "door_servo_control"
+                    "door_control": FIELDS_DICTIONARY["control"][
+                        "door_control"
                     ]
                 },
                 status=status.HTTP_200_OK,
