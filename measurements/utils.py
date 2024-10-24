@@ -126,6 +126,7 @@ TOPIC_TO_FIELD_MAP = {
     "security/RFID/data": ["security", "rfid_data"],
     "security/pinpad/data": ["security", "pinpad_data"],
     "security/buzzer/status": ["security", "buzzer_control_status"],
+    "security/alarm_armed/status": ["security", "is_alarm_armed"],
     "security/flame_sensor/status": ["security", "flame_sensor_status"],
     "security/PIR/1/status": ["security", "pir_sensor_1_status"],
     "security/PIR/2/status": ["security", "pir_sensor_2_status"],

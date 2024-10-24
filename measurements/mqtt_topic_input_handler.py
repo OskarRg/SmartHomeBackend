@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 
 import paho.mqtt.client as mqtt
 from django.utils import timezone
@@ -288,7 +289,12 @@ def start_mqtt_client():
     client = mqtt.Client()
     client.on_message = on_message
 
-    client.connect("localhost", 1883, 60)
+    if os.getenv('DOCKERIZED'):
+        broker_address = "mqtt"
+    else:
+        broker_address = "localhost"
+
+    client.connect(broker_address, 1883, 60)
 
     for topic in TOPIC_TO_FIELD_MAP.keys():
         smarthome_topic = f"smarthome/{topic}"
