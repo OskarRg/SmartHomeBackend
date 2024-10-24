@@ -1,11 +1,9 @@
 from pathlib import Path
-from decouple import config  # Importowanie obsługi .env
+from decouple import config
 import os
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Wrażliwe dane przeniesione do pliku .env
 SECRET_KEY = config(
     "SECRET_KEY",
     default="django-insecure-0)6-#mq521d4bjxb8j#9kaa%ph4i*!dx8ibax*s+mau!cex*#k",
