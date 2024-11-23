@@ -103,6 +103,16 @@ class RFIDHandler(BaseHandler):
 """
 
 
+class PinPadHandler(BaseHandler):
+    def handle(self, topic: str, payload: dict):
+        code = payload.get("value")
+        if code == FIELDS_DICTIONARY["security"]["current_pin"]:
+            print("Correct pin entered. Door opening i need to implement it.")
+            self.publish_mqtt_message("smarthome/control/door/lock/status", {"value": 0})
+        else:
+            print(f"Incorrect pin entered. Not opening the door. pin: {code}, current pin: {FIELDS_DICTIONARY['security']['current_pin']}")
+
+
 class RFIDHandler(BaseHandler):
     def handle(self, topic: str, payload: dict):
         code = payload.get("value")
@@ -255,6 +265,7 @@ TOPIC_HANDLER_MAP = {
     "security/tilt_sensor/status": SecurityHandler(),
     "security/radiation_sensitive/status": SecurityHandler(),
     "security/buzzer/status": SecurityHandler(),
+    "security/alarm_armed/status": PinPadHandler(),
     "security/flame_sensor/status": SecurityHandler(),
     "security/PIR/1/status": SecurityHandler(),
     "security/PIR/2/status": SecurityHandler(),
@@ -276,6 +287,7 @@ def on_message(client, userdata, message):
     print("AA: ", message.topic)
     topic = "/".join(message.topic.split("/")[1:])
     payload = json.loads(message.payload)
+    print(f"Received message on topic: {topic}")
     if topic in TOPIC_HANDLER_MAP:
         handler = TOPIC_HANDLER_MAP[topic]
         handler.handle(topic, payload)

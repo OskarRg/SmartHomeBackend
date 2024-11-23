@@ -49,7 +49,7 @@ def publish_to_all_topics():
 
     for topic in TOPIC_TO_FIELD_MAP.keys():
         publish_message(client, topic)
-        # publish_message(client, "security/RFID/data") test only lock status after rfid card was correctly published
+        #publish_message(client, "security/PIR/1/status") #  test only lock status after rfid card was correctly published
     client.disconnect()
 
 
