@@ -76,19 +76,19 @@ class SecurityHandler(BaseHandler):
         current_dict = FIELDS_DICTIONARY
         for key in field_path[:-1]:
             current_dict = current_dict[key]
-        if FIELDS_DICTIONARY["security"]["alarm_armed"]["value"]:
+        if FIELDS_DICTIONARY["security"]["is_alarm_armed"]:
             print("Alarm is armed")
             print("Alarm is on")
-            self.publish_mqtt_message(
-                "smarthome/security/buzzer/status", {"value": 1}
-            )
+            self.publish_mqtt_message("smarthome/security/buzzer/status", {"value": 1})
             current_dict[field_path[-1]] = {"value": value, "alarm_on": 1}
         else:
             print("Alarm is off")
-            self.publish_mqtt_message(
-                "smarthome/security/buzzer/status", {"value": 0}
-            )
             current_dict[field_path[-1]] = {"value": value, "alarm_on": 0}
+
+
+class BuzzerHandler(BaseHandler):
+    def handle(self, topic: str, payload: dict):
+        print("Wake the fuck up Samurai. The Buzzer is on adn we have a Projekt to do.")
 
 
 class LEDHandler(BaseHandler):
@@ -287,7 +287,7 @@ TOPIC_HANDLER_MAP = {
     "energy/energy_production/voltage/bus/data": EnergyProductionMeasurementHandler(),
     "security/tilt_sensor/status": SecurityHandler(),
     "security/radiation_sensitive/status": SecurityHandler(),
-    "security/buzzer/status": SecurityHandler(),
+    "security/buzzer/status": BuzzerHandler(),
     "security/alarm_armed/status": SecurityHandler(),
     "security/flame_sensor/status": SecurityHandler(),
     "security/PIR/1/status": SecurityHandler(),
