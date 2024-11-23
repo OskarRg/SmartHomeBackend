@@ -179,7 +179,7 @@ def save_measurement_to_db(
 
         naive_datetime = datetime.datetime.now()
         aware_datetime = timezone.make_aware(naive_datetime)
-        model.objects.create(type=measurement_type, value=value, date=aware_datetime)
+        model.objects.create(type=measurement_type, value=round(value,2), date=aware_datetime)
     except Exception as e:
         print(f"Error saving measurement to database: {e}")
 
@@ -200,7 +200,7 @@ class EnvironmentMeasurementHandler(BaseHandler):
         naive_datetime = datetime.datetime.now()
         aware_datetime = timezone.make_aware(naive_datetime)
         measurement = CurrentMeasurement(
-            measurement_type=measurement_type, value=value, date=aware_datetime
+            measurement_type=measurement_type, value=round(value,2), date=aware_datetime
         )
         current_dict = FIELDS_DICTIONARY
         for key in field_path[:-1]:
@@ -226,7 +226,7 @@ class EnergyProductionMeasurementHandler(BaseHandler):
         naive_datetime = datetime.datetime.now()
         aware_datetime = timezone.make_aware(naive_datetime)
         measurement = EnergyMeasurement(
-            measurement_type=measurement_type, value=value, date=aware_datetime
+            measurement_type=measurement_type, value=round(value,2), date=aware_datetime
         )
         current_dict = FIELDS_DICTIONARY
         for key in field_path[:-1]:
@@ -254,7 +254,7 @@ class EnergyConsumptionMeasurementHandler(BaseHandler):
         naive_datetime = datetime.datetime.now()
         aware_datetime = timezone.make_aware(naive_datetime)
         measurement = EnergyMeasurement(
-            measurement_type=measurement_type, value=value, date=aware_datetime
+            measurement_type=measurement_type, value=round(value,2), date=aware_datetime
         )
         current_dict = FIELDS_DICTIONARY
         for key in field_path[:-1]:

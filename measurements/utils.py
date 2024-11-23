@@ -106,7 +106,7 @@ FIELDS_DICTIONARY: dict[
     },
     "settings": {
         "alarm_time": 30,  # in seconds
-        "light_sensor_sensitivity": 50,  # in ???, ask someone who is in charge of this
+        "light_sensor_sensitivity": 500,  # in ???, ask someone who is in charge of this
     },
 }
 
@@ -184,7 +184,7 @@ TOPIC_TO_FIELD_MAP = {
     "environment/gas_sensor/data": ["environment", "gas_data"],
 }
 
- 
+
 class RFIDManager:
     def __init__(self):
         self.pending_rfid_owner = None

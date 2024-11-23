@@ -119,6 +119,7 @@ class LEDControlAPIView(BaseMQTTAPIView):
             rgb_values = serializer.validated_data
 
             self.publish_mqtt_message(f"energy/LED/{led_number}/data", rgb_values)
+
             if isinstance(
                 FIELDS_DICTIONARY["energy"]["leds"][led_number], RGBLedValues
             ):
@@ -199,7 +200,7 @@ class LightSensitivityChangeAPIView(BaseMQTTAPIView):
             )
             self.publish_mqtt_message(
                 "settings/light_sensor_sensitivity/data",
-                {"value": serializer.validated_data["value"]},
+                {"value": int(serializer.validated_data["value"])},
             )
             return Response(
                 {
