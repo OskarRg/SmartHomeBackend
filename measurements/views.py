@@ -13,9 +13,10 @@ endpoints to add
 
 """
 
+
+# TODO HOW TO CLOSE ALARM_ON ON SECURITY AFTER ARMED ALARM
+
 import json
-import threading
-import time
 
 import paho.mqtt.client as mqtt
 from django_filters.rest_framework import DjangoFilterBackend
@@ -101,7 +102,8 @@ class BaseMQTTAPIView(APIView):
         client = mqtt.Client()
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
         client.loop_start()
-        client.publish(topic, json.dumps(payload), qos=1)
+        # client.publish(topic, json.dumps(payload), qos=1)
+        client.publish(f"smarthome/{topic}", json.dumps(payload), qos=2)
         client.loop_stop()
 
 
@@ -117,6 +119,7 @@ class LEDControlAPIView(BaseMQTTAPIView):
             rgb_values = serializer.validated_data
 
             self.publish_mqtt_message(f"energy/LED/{led_number}/data", rgb_values)
+
             if isinstance(
                 FIELDS_DICTIONARY["energy"]["leds"][led_number], RGBLedValues
             ):
@@ -160,11 +163,7 @@ class DoorServoControlAPIView(BaseMQTTAPIView):
                 {"value": serializer.validated_data["value"]},
             )
             return Response(
-                {
-                    "door_control": FIELDS_DICTIONARY["control"][
-                        "door_control"
-                    ]
-                },
+                {"door_control": FIELDS_DICTIONARY["control"]["door_control"]},
                 status=status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -199,6 +198,10 @@ class LightSensitivityChangeAPIView(BaseMQTTAPIView):
             FIELDS_DICTIONARY["settings"]["light_sensor_sensitivity"] = (
                 serializer.validated_data["value"]
             )
+            self.publish_mqtt_message(
+                "settings/light_sensor_sensitivity/data",
+                {"value": int(serializer.validated_data["value"])},
+            )
             return Response(
                 {
                     "light_sensor_sensitivity": FIELDS_DICTIONARY["settings"][
@@ -217,6 +220,10 @@ class SetAlarmAPIView(BaseMQTTAPIView):
             FIELDS_DICTIONARY["settings"]["alarm_time"] = serializer.validated_data[
                 "value"
             ]
+            self.publish_mqtt_message(
+                f"security/alarm_armed/status",
+                {"value": FIELDS_DICTIONARY["security"]["is_alarm_armed"]},
+            )
             return Response(
                 {"alarm_time": FIELDS_DICTIONARY["settings"]["alarm_time"]},
                 status=status.HTTP_200_OK,
@@ -240,9 +247,11 @@ class ArmedAlarm(BaseMQTTAPIView):
 
 class TurnOffBuzzer(BaseMQTTAPIView):
     def post(self, request):
+        FIELDS_DICTIONARY["security"]["buzzer_control_status"]["value"] = False
+
         self.publish_mqtt_message(
             f"security/buzzer/status",
-            {"value": not FIELDS_DICTIONARY["security"]["buzzer_control_status"]},
+            {"value": FIELDS_DICTIONARY["security"]["buzzer_control_status"]["value"]},
         )
 
         return Response(
