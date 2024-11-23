@@ -76,12 +76,12 @@ FIELDS_DICTIONARY: dict[
     },
     "energy": {
         "leds": {
-            "1": None,
-            "2": None,
-            "3": None,
-            "4": None,
-            "5": None,
-            "6": None,
+            "1": {"red": 0, "green": 0, "blue": 0},
+            "2": {"red": 0, "green": 0, "blue": 0},
+            "3": {"red": 0, "green": 0, "blue": 0},
+            "4": {"red": 0, "green": 0, "blue": 0},
+            "5": {"red": 0, "green": 0, "blue": 0},
+            "6": {"red": 0, "green": 0, "blue": 0},
         },
         "energy_consumption": {
             "current_data": None,
