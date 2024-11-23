@@ -101,7 +101,8 @@ class BaseMQTTAPIView(APIView):
         client = mqtt.Client()
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
         client.loop_start()
-        client.publish(topic, json.dumps(payload), qos=1)
+        # client.publish(topic, json.dumps(payload), qos=1)
+        client.publish(f"smarthome/{topic}", json.dumps(payload), qos=2)
         client.loop_stop()
 
 
@@ -160,11 +161,7 @@ class DoorServoControlAPIView(BaseMQTTAPIView):
                 {"value": serializer.validated_data["value"]},
             )
             return Response(
-                {
-                    "door_control": FIELDS_DICTIONARY["control"][
-                        "door_control"
-                    ]
-                },
+                {"door_control": FIELDS_DICTIONARY["control"]["door_control"]},
                 status=status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -217,6 +214,10 @@ class SetAlarmAPIView(BaseMQTTAPIView):
             FIELDS_DICTIONARY["settings"]["alarm_time"] = serializer.validated_data[
                 "value"
             ]
+            self.publish_mqtt_message(
+                f"security/alarm_armed/status",
+                {"value": FIELDS_DICTIONARY["security"]["is_alarm_armed"]},
+            )
             return Response(
                 {"alarm_time": FIELDS_DICTIONARY["settings"]["alarm_time"]},
                 status=status.HTTP_200_OK,
@@ -231,6 +232,10 @@ class ArmedAlarm(BaseMQTTAPIView):
             FIELDS_DICTIONARY["security"]["is_alarm_armed"] = serializer.validated_data[
                 "value"
             ]
+            self.publish_mqtt_message(
+                f"security/alarm_armed/status",
+                {"value": FIELDS_DICTIONARY["security"]["is_alarm_armed"]},
+            )
             return Response(
                 {"is_alarm_armed": FIELDS_DICTIONARY["security"]["is_alarm_armed"]},
                 status=status.HTTP_200_OK,
@@ -240,9 +245,11 @@ class ArmedAlarm(BaseMQTTAPIView):
 
 class TurnOffBuzzer(BaseMQTTAPIView):
     def post(self, request):
+        FIELDS_DICTIONARY["security"]["buzzer_control_status"]["value"] = False
+
         self.publish_mqtt_message(
             f"security/buzzer/status",
-            {"value": not FIELDS_DICTIONARY["security"]["buzzer_control_status"]},
+            {"value": FIELDS_DICTIONARY["security"]["buzzer_control_status"]["value"]},
         )
 
         return Response(

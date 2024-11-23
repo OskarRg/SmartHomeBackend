@@ -5,8 +5,12 @@ import paho.mqtt.client as mqtt
 from django.utils import timezone
 from django.db import models
 
-from measurements.models import HistoricalMeasurement, RFIDCard, EnergyProductionMeasurement, \
-    EnergyConsumptionMeasurement
+from measurements.models import (
+    HistoricalMeasurement,
+    RFIDCard,
+    EnergyProductionMeasurement,
+    EnergyConsumptionMeasurement,
+)
 from measurements.utils import (
     RGBLedValues,
     FIELDS_DICTIONARY,
@@ -14,7 +18,8 @@ from measurements.utils import (
     CurrentMeasurement,
     rfid_manager,
     MQTT_BROKER,
-    MQTT_PORT, EnergyMeasurement,
+    MQTT_PORT,
+    EnergyMeasurement,
 )
 
 
@@ -57,6 +62,7 @@ class SecurityHandler(BaseHandler):
         print("SECURITY HANDLER")
         value = payload.get("value")
         alarm_on = payload.get("alarm_on")
+        alarm_on = True if value else False
         print(payload)
         if value in (None, "") and not isinstance(value, int):
             print(f"The value from the topic {topic} is missing")
@@ -69,7 +75,6 @@ class SecurityHandler(BaseHandler):
 
         current_dict = FIELDS_DICTIONARY
         for key in field_path[:-1]:
-            print("key: ", key)
 
             current_dict = current_dict[key]
 
@@ -108,9 +113,13 @@ class PinPadHandler(BaseHandler):
         code = payload.get("value")
         if code == FIELDS_DICTIONARY["security"]["current_pin"]:
             print("Correct pin entered. Door opening i need to implement it.")
-            self.publish_mqtt_message("smarthome/control/door/lock/status", {"value": 0})
+            self.publish_mqtt_message(
+                "smarthome/control/door/lock/status", {"value": 0}
+            )
         else:
-            print(f"Incorrect pin entered. Not opening the door. pin: {code}, current pin: {FIELDS_DICTIONARY['security']['current_pin']}")
+            print(
+                f"Incorrect pin entered. Not opening the door. pin: {code}, current pin: {FIELDS_DICTIONARY['security']['current_pin']}"
+            )
 
 
 class RFIDHandler(BaseHandler):
@@ -148,7 +157,9 @@ class RFIDHandler(BaseHandler):
                 print(f"No pending RFID request. Ignoring card with code {code}.")
 
 
-def save_measurement_to_db(measurement_type: str, value: float, model: type[models.Model]):
+def save_measurement_to_db(
+    measurement_type: str, value: float, model: type[models.Model]
+):
     if measurement_type is None:
         print(f"Measurement type {measurement_type} is not recognized for database.")
         return
@@ -157,9 +168,7 @@ def save_measurement_to_db(measurement_type: str, value: float, model: type[mode
 
         naive_datetime = datetime.datetime.now()
         aware_datetime = timezone.make_aware(naive_datetime)
-        model.objects.create(
-            type=measurement_type, value=value, date=aware_datetime
-        )
+        model.objects.create(type=measurement_type, value=value, date=aware_datetime)
     except Exception as e:
         print(f"Error saving measurement to database: {e}")
 
@@ -213,7 +222,9 @@ class EnergyProductionMeasurementHandler(BaseHandler):
             current_dict = current_dict[key]
 
         current_dict[field_path[-1]] = measurement
-        save_measurement_to_db(measurement_type, value, model=EnergyProductionMeasurement)
+        save_measurement_to_db(
+            measurement_type, value, model=EnergyProductionMeasurement
+        )
 
 
 class EnergyConsumptionMeasurementHandler(BaseHandler):
@@ -239,11 +250,12 @@ class EnergyConsumptionMeasurementHandler(BaseHandler):
             current_dict = current_dict[key]
 
         current_dict[field_path[-1]] = measurement
-        save_measurement_to_db(measurement_type, value, model=EnergyConsumptionMeasurement)
+        save_measurement_to_db(
+            measurement_type, value, model=EnergyConsumptionMeasurement
+        )
 
 
 TOPIC_HANDLER_MAP = {
-    "security/RFID/data": RFIDHandler(),
     "energy/LED/1/data": LEDHandler(),
     "energy/LED/2/data": LEDHandler(),
     "energy/LED/3/data": LEDHandler(),
@@ -254,7 +266,7 @@ TOPIC_HANDLER_MAP = {
     "environment/multi_sensor/humidity/data": EnvironmentMeasurementHandler(),
     "environment/multi_sensor/pressure/data": EnvironmentMeasurementHandler(),
     "environment/gas_sensor/data": EnvironmentMeasurementHandler(),
-    "energy/energy_consumption/current/data": EnergyConsumptionMeasurementHandler(), # TU
+    "energy/energy_consumption/current/data": EnergyConsumptionMeasurementHandler(),  # TU
     "energy/energy_consumption/power/data": EnergyConsumptionMeasurementHandler(),
     "energy/energy_consumption/voltage/supply/data": EnergyConsumptionMeasurementHandler(),
     "energy/energy_consumption/voltage/bus/data": EnergyConsumptionMeasurementHandler(),
@@ -265,10 +277,12 @@ TOPIC_HANDLER_MAP = {
     "security/tilt_sensor/status": SecurityHandler(),
     "security/radiation_sensitive/status": SecurityHandler(),
     "security/buzzer/status": SecurityHandler(),
-    "security/alarm_armed/status": PinPadHandler(),
+    "security/alarm_armed/status": SecurityHandler(),
     "security/flame_sensor/status": SecurityHandler(),
     "security/PIR/1/status": SecurityHandler(),
     "security/PIR/2/status": SecurityHandler(),
+    "security/pinpad/data": PinPadHandler(),
+    "security/RFID/data": RFIDHandler(),
 }
 
 SENSOR_TO_TYPE_MAP = {
@@ -300,7 +314,7 @@ def start_mqtt_client():
     client = mqtt.Client()
     client.on_message = on_message
 
-    client.connect("localhost", 1883, 60)
+    client.connect(MQTT_BROKER, MQTT_PORT, 60)
 
     for topic in TOPIC_TO_FIELD_MAP.keys():
         smarthome_topic = f"smarthome/{topic}"

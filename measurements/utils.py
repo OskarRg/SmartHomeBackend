@@ -1,11 +1,14 @@
 import threading
 import time
 
+
+# MQTT_BROKER = "100.74.182.124"
+# MQTT_PORT = 1885
+
 MQTT_BROKER = "localhost"
 MQTT_PORT = 1883
 
 
-# TODO NAPRAWIĆ MAPPING - FIELDS z TOPICAMI - ZROBIĆ SCHEMAT DLA DEBILI
 class RGBLedValues:
     def __init__(self, led_number: int, red: int, green: int, blue: int):
         self.led_number = led_number
@@ -49,7 +52,9 @@ class EnergyMeasurement:
     ]
 
 
-FIELDS_DICTIONARY: dict[str, dict[str, str | float | RGBLedValues | CurrentMeasurement | EnergyMeasurement]] = {
+FIELDS_DICTIONARY: dict[
+    str, dict[str, str | float | RGBLedValues | CurrentMeasurement | EnergyMeasurement]
+] = {
     "control": {
         "fan_1_control_status": None,
         "fan_2_control_status": None,
@@ -63,7 +68,7 @@ FIELDS_DICTIONARY: dict[str, dict[str, str | float | RGBLedValues | CurrentMeasu
         "pir_sensor_1_status": {"value": None, "alarm_on": False},
         "pir_sensor_2_status": {"value": None, "alarm_on": False},
         "radiation_sensitive_status": {"value": None, "alarm_on": False},
-        "buzzer_control_status": {"value": None, "alarm_on": False},
+        "buzzer_control_status": {"value": False, "alarm_on": False},
         "flame_sensor_status": {"value": None, "alarm_on": False},
         # "rfid_data": "",  # TODO This field will need to reset after each read - (in view after reading)
         "current_pin": "1111",
@@ -109,14 +114,46 @@ FIELDS_DICTIONARY: dict[str, dict[str, str | float | RGBLedValues | CurrentMeasu
 TOPIC_TO_FIELD_MAP = {
     "settings/light_sensor_sensitivity/data": ["settings", "light_sensor_sensitivity"],
     "energy/intensity_sensor/data": ["energy", "intensity_sensor_data"],
-    "energy/energy_consumption/current/data": ["energy", "energy_consumption", "current_data"],
-    "energy/energy_consumption/power/data": ["energy", "energy_consumption", "power_data"],
-    "energy/energy_consumption/voltage/supply/data": ["energy", "energy_consumption", "supply_data"],
-    "energy/energy_consumption/voltage/bus/data": ["energy", "energy_consumption", "bus_data"],
-    "energy/energy_production/current/data": ["energy", "energy_production", "current_data"],
-    "energy/energy_production/power/data": ["energy", "energy_production", "power_data"],
-    "energy/energy_production/voltage/supply/data": ["energy", "energy_production", "supply_data"],
-    "energy/energy_production/voltage/bus/data": ["energy", "energy_production", "bus_data"],
+    "energy/energy_consumption/current/data": [
+        "energy",
+        "energy_consumption",
+        "current_data",
+    ],
+    "energy/energy_consumption/power/data": [
+        "energy",
+        "energy_consumption",
+        "power_data",
+    ],
+    "energy/energy_consumption/voltage/supply/data": [
+        "energy",
+        "energy_consumption",
+        "supply_data",
+    ],
+    "energy/energy_consumption/voltage/bus/data": [
+        "energy",
+        "energy_consumption",
+        "bus_data",
+    ],
+    "energy/energy_production/current/data": [
+        "energy",
+        "energy_production",
+        "current_data",
+    ],
+    "energy/energy_production/power/data": [
+        "energy",
+        "energy_production",
+        "power_data",
+    ],
+    "energy/energy_production/voltage/supply/data": [
+        "energy",
+        "energy_production",
+        "supply_data",
+    ],
+    "energy/energy_production/voltage/bus/data": [
+        "energy",
+        "energy_production",
+        "bus_data",
+    ],
     "energy/LED/1/data": ["energy", "leds", "1"],
     "energy/LED/2/data": ["energy", "leds", "2"],
     "energy/LED/3/data": ["energy", "leds", "3"],
@@ -147,7 +184,7 @@ TOPIC_TO_FIELD_MAP = {
     "environment/gas_sensor/data": ["environment", "gas_data"],
 }
 
-
+ 
 class RFIDManager:
     def __init__(self):
         self.pending_rfid_owner = None
