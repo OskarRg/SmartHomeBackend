@@ -13,9 +13,10 @@ endpoints to add
 
 """
 
+
+# TODO HOW TO CLOSE ALARM_ON ON SECURITY AFTER ARMED ALARM
+
 import json
-import threading
-import time
 
 import paho.mqtt.client as mqtt
 from django_filters.rest_framework import DjangoFilterBackend
@@ -195,6 +196,10 @@ class LightSensitivityChangeAPIView(BaseMQTTAPIView):
         if serializer.is_valid():
             FIELDS_DICTIONARY["settings"]["light_sensor_sensitivity"] = (
                 serializer.validated_data["value"]
+            )
+            self.publish_mqtt_message(
+                "settings/light_sensor_sensitivity/data",
+                {"value": serializer.validated_data["value"]},
             )
             return Response(
                 {
