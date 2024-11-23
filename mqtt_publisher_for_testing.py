@@ -11,20 +11,27 @@ mqtt_topic = "smarthome/energy/intensity_sensor/data"
 def publish_message(client, topic):
     topic = f"smarthome/{topic}"
     message = {
-        "value": 69.5
+        "value": 1.0
     }
+
+    # Dla twoich testów, możesz sobie tutaj pozmieniać topic i posprawdzać.
+    if "security/buzzer/status" in topic:
+        message = {
+            "value": True,
+            "alarm_on": True
+        }
 
     if "LED" in topic:
         led_number = topic.split("/")[-2]
         message = {
-            "red": int(led_number),
-            "green": 100,
-            "blue": 50
+            "red": 0,
+            "green": 0,
+            "blue": 0
         }
 
     elif "RFID" in topic:
         message = {
-            "value": "1234567890"
+            "value": "1234567899"
         }
     elif "pinpad" in topic:
         message = {
@@ -42,7 +49,7 @@ def publish_to_all_topics():
 
     for topic in TOPIC_TO_FIELD_MAP.keys():
         publish_message(client, topic)
-
+        # publish_message(client, "security/RFID/data") test only lock status after rfid card was correctly published
     client.disconnect()
 
 

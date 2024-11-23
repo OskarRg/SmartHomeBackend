@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+
+# TODO Sort the urls in alphabetical order
 urlpatterns = [
     path(
         "historical/type/<str:measurement_type>/",
@@ -8,9 +10,14 @@ urlpatterns = [
         name="historical_measurements_list",
     ),
     path(
-        "historical/<int:pk>/",
-        views.HistoricalMeasurementDetailView.as_view(),
-        name="historical_measurement_detail",
+        "consumption/type/<str:measurement_type>/",
+        views.EnergyConsumptionListView.as_view(),
+        name="consumption_measurements_list",
+    ),
+    path(
+        "production/type/<str:measurement_type>/",
+        views.EnergyProductionListView.as_view(),
+        name="production_measurements_list",
     ),
     path(
         "fields-dictionary/",
@@ -34,13 +41,38 @@ urlpatterns = [
         name="fan-control",
     ),
     path(
-        "control/servo-vertical/",
-        views.ServoVerticalControlAPIView.as_view(),
-        name="servo-vertical-control",
+        "control/solar-position/",
+        views.SolarPanelPositionAPIView.as_view(),
+        name="solar-control",
     ),
     path(
-        "control/servo-horizontal/",
-        views.ServoHorizontalControlAPIView.as_view(),
-        name="servo-horizontal-control",
+        "security/buzzer/",
+        views.TurnOffBuzzer.as_view(),
+        name="buzzer-control",
+    ),
+    path(
+        "settings/light-sensitivity/",
+        views.LightSensitivityChangeAPIView.as_view(),
+        name="light-setting",
+    ),
+    path(
+        "security/change-current-pin/",
+        views.PinChangeAPIView.as_view(),
+        name="change-current-pin",
+    ),
+    path(
+        "settings/set-alarm/",
+        views.SetAlarmAPIView.as_view(),
+        name="set-alarm",
+    ),
+    path(
+        "settings/set-armed-alarm/",
+        views.ArmedAlarm.as_view(),
+        name="set-armed-alarm",
+    ),
+    path(
+        "security/set-rfid/",
+        views.AddRFIDAPIView.as_view(),
+        name="set-rfid",
     ),
 ]

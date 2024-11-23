@@ -3,20 +3,40 @@ import json
 
 import paho.mqtt.client as mqtt
 from django.utils import timezone
+from django.db import models
 
-from measurements.models import HistoricalMeasurement
-from measurements.utils import RGBLedValues, FIELDS_DICTIONARY, TOPIC_TO_FIELD_MAP, CurrentMeasurement
+from measurements.models import HistoricalMeasurement, RFIDCard, EnergyProductionMeasurement, \
+    EnergyConsumptionMeasurement
+from measurements.utils import (
+    RGBLedValues,
+    FIELDS_DICTIONARY,
+    TOPIC_TO_FIELD_MAP,
+    CurrentMeasurement,
+    rfid_manager,
+    MQTT_BROKER,
+    MQTT_PORT, EnergyMeasurement,
+)
 
 
 class BaseHandler:
     def handle(self, topic: str, payload: dict):
         raise NotImplementedError("Handler must implement the 'handle' method")
 
+    @staticmethod
+    def publish_mqtt_message(topic, payload):
+        client = mqtt.Client()
+        client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        client.loop_start()
+        client.publish(topic, json.dumps(payload), qos=1)
+        client.loop_stop()
+
 
 class DefaultHandler(BaseHandler):
     def handle(self, topic: str, payload: dict):
+        print("DEFAULT HANDLER")
         value = payload.get("value")
-        if not value:
+        print(payload)
+        if value in (None, "") and not isinstance(value, int):
             print(f"The value from the topic {topic} is missing")
             return
 
@@ -30,6 +50,30 @@ class DefaultHandler(BaseHandler):
             current_dict = current_dict[key]
 
         current_dict[field_path[-1]] = value
+
+
+class SecurityHandler(BaseHandler):
+    def handle(self, topic: str, payload: dict):
+        print("SECURITY HANDLER")
+        value = payload.get("value")
+        alarm_on = payload.get("alarm_on")
+        print(payload)
+        if value in (None, "") and not isinstance(value, int):
+            print(f"The value from the topic {topic} is missing")
+            return
+
+        field_path = TOPIC_TO_FIELD_MAP[topic]
+        if field_path is None:
+            print(f"Topic {topic} is not handled.")
+            return
+
+        current_dict = FIELDS_DICTIONARY
+        for key in field_path[:-1]:
+            print("key: ", key)
+
+            current_dict = current_dict[key]
+
+        current_dict[field_path[-1]] = {"value": value, "alarm_on": alarm_on}
 
 
 class LEDHandler(BaseHandler):
@@ -48,6 +92,7 @@ class LEDHandler(BaseHandler):
         FIELDS_DICTIONARY["energy"]["leds"][str(led_number)] = rgb_value
 
 
+"""
 class RFIDHandler(BaseHandler):
     def handle(self, topic: str, payload: dict):
         value = payload["value"]
@@ -55,10 +100,45 @@ class RFIDHandler(BaseHandler):
             print(f"No RFID value from the topic: {topic}")
             return
         FIELDS_DICTIONARY["security"]["rfid_data"] = value
+"""
 
 
-def save_measurement_to_db(measurement_type: str, value: float):
+class RFIDHandler(BaseHandler):
+    def handle(self, topic: str, payload: dict):
+        code = payload.get("value")
 
+        if code is None:
+            print(f"RFID code is missing from the topic: {topic}")
+            return
+
+        pending_rfid_owner = rfid_manager.get_pending_rfid_owner()
+
+        rfid_card = RFIDCard.objects.filter(code=code).first()
+        # TODO Is every card code unique? If not, we need to check for owner.
+
+        if rfid_card:
+            print(f"RFID card {code} recognized. Unlocking the door...")
+
+            self.publish_mqtt_message(
+                "smarthome/control/door/lock/status", {"value": 0}
+            )
+        else:
+            print("rfid_card", rfid_card)
+            if pending_rfid_owner:
+                try:
+                    RFIDCard.objects.create(owner=pending_rfid_owner, code=code)
+                    print(
+                        f"Added new RFID card with code {code} for owner {pending_rfid_owner}."
+                    )
+
+                    rfid_manager.set_pending_rfid_owner(None)
+                except Exception as e:
+                    print(f"Error saving RFID card: {e}")
+            else:
+                print(f"No pending RFID request. Ignoring card with code {code}.")
+
+
+def save_measurement_to_db(measurement_type: str, value: float, model: type[models.Model]):
     if measurement_type is None:
         print(f"Measurement type {measurement_type} is not recognized for database.")
         return
@@ -67,7 +147,7 @@ def save_measurement_to_db(measurement_type: str, value: float):
 
         naive_datetime = datetime.datetime.now()
         aware_datetime = timezone.make_aware(naive_datetime)
-        HistoricalMeasurement.objects.create(
+        model.objects.create(
             type=measurement_type, value=value, date=aware_datetime
         )
     except Exception as e:
@@ -97,10 +177,63 @@ class EnvironmentMeasurementHandler(BaseHandler):
             current_dict = current_dict[key]
 
         current_dict[field_path[-1]] = measurement
-        save_measurement_to_db(measurement_type, value)
+        save_measurement_to_db(measurement_type, value, model=HistoricalMeasurement)
+
+
+class EnergyProductionMeasurementHandler(BaseHandler):
+    def handle(self, topic: str, payload: dict):
+        value = payload.get("value")
+        measurement_type = topic.split("/")[-2]
+        measurement_type = SENSOR_TO_TYPE_MAP[measurement_type]
+        if value is None:
+            print(f"No value from the topic: {topic}")
+            return
+
+        field_path = TOPIC_TO_FIELD_MAP[topic]
+        if field_path is None:
+            print(f"Topic {topic} is not handled.")
+            return
+        naive_datetime = datetime.datetime.now()
+        aware_datetime = timezone.make_aware(naive_datetime)
+        measurement = EnergyMeasurement(
+            measurement_type=measurement_type, value=value, date=aware_datetime
+        )
+        current_dict = FIELDS_DICTIONARY
+        for key in field_path[:-1]:
+            current_dict = current_dict[key]
+
+        current_dict[field_path[-1]] = measurement
+        save_measurement_to_db(measurement_type, value, model=EnergyProductionMeasurement)
+
+
+class EnergyConsumptionMeasurementHandler(BaseHandler):
+    def handle(self, topic: str, payload: dict):
+        value = payload.get("value")
+        measurement_type = topic.split("/")[-2]
+        measurement_type = SENSOR_TO_TYPE_MAP[measurement_type]
+        if value is None:
+            print(f"No value from the topic: {topic}")
+            return
+
+        field_path = TOPIC_TO_FIELD_MAP[topic]
+        if field_path is None:
+            print(f"Topic {topic} is not handled.")
+            return
+        naive_datetime = datetime.datetime.now()
+        aware_datetime = timezone.make_aware(naive_datetime)
+        measurement = EnergyMeasurement(
+            measurement_type=measurement_type, value=value, date=aware_datetime
+        )
+        current_dict = FIELDS_DICTIONARY
+        for key in field_path[:-1]:
+            current_dict = current_dict[key]
+
+        current_dict[field_path[-1]] = measurement
+        save_measurement_to_db(measurement_type, value, model=EnergyConsumptionMeasurement)
 
 
 TOPIC_HANDLER_MAP = {
+    "security/RFID/data": RFIDHandler(),
     "energy/LED/1/data": LEDHandler(),
     "energy/LED/2/data": LEDHandler(),
     "energy/LED/3/data": LEDHandler(),
@@ -111,6 +244,20 @@ TOPIC_HANDLER_MAP = {
     "environment/multi_sensor/humidity/data": EnvironmentMeasurementHandler(),
     "environment/multi_sensor/pressure/data": EnvironmentMeasurementHandler(),
     "environment/gas_sensor/data": EnvironmentMeasurementHandler(),
+    "energy/energy_consumption/current/data": EnergyConsumptionMeasurementHandler(), # TU
+    "energy/energy_consumption/power/data": EnergyConsumptionMeasurementHandler(),
+    "energy/energy_consumption/voltage/supply/data": EnergyConsumptionMeasurementHandler(),
+    "energy/energy_consumption/voltage/bus/data": EnergyConsumptionMeasurementHandler(),
+    "energy/energy_production/current/data": EnergyProductionMeasurementHandler(),
+    "energy/energy_production/power/data": EnergyProductionMeasurementHandler(),
+    "energy/energy_production/voltage/supply/data": EnergyProductionMeasurementHandler(),
+    "energy/energy_production/voltage/bus/data": EnergyProductionMeasurementHandler(),
+    "security/tilt_sensor/status": SecurityHandler(),
+    "security/radiation_sensitive/status": SecurityHandler(),
+    "security/buzzer/status": SecurityHandler(),
+    "security/flame_sensor/status": SecurityHandler(),
+    "security/PIR/1/status": SecurityHandler(),
+    "security/PIR/2/status": SecurityHandler(),
 }
 
 SENSOR_TO_TYPE_MAP = {
@@ -118,6 +265,10 @@ SENSOR_TO_TYPE_MAP = {
     "humidity": "H",
     "pressure": "P",
     "gas_sensor": "G",
+    "bus": "B",
+    "current": "C",
+    "power": "P",
+    "supply": "S",
 }
 
 
