@@ -75,10 +75,20 @@ class SecurityHandler(BaseHandler):
 
         current_dict = FIELDS_DICTIONARY
         for key in field_path[:-1]:
-
             current_dict = current_dict[key]
-
-        current_dict[field_path[-1]] = {"value": value, "alarm_on": alarm_on}
+        if FIELDS_DICTIONARY["security"]["alarm_armed"]["value"]:
+            print("Alarm is armed")
+            print("Alarm is on")
+            self.publish_mqtt_message(
+                "smarthome/security/buzzer/status", {"value": 1}
+            )
+            current_dict[field_path[-1]] = {"value": value, "alarm_on": 1}
+        else:
+            print("Alarm is off")
+            self.publish_mqtt_message(
+                "smarthome/security/buzzer/status", {"value": 0}
+            )
+            current_dict[field_path[-1]] = {"value": value, "alarm_on": 0}
 
 
 class LEDHandler(BaseHandler):
@@ -116,6 +126,7 @@ class PinPadHandler(BaseHandler):
             self.publish_mqtt_message(
                 "smarthome/control/door/lock/status", {"value": 0}
             )
+            FIELDS_DICTIONARY["control"]["lock_status"] = 0
         else:
             print(
                 f"Incorrect pin entered. Not opening the door. pin: {code}, current pin: {FIELDS_DICTIONARY['security']['current_pin']}"

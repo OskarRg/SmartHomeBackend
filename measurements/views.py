@@ -232,10 +232,6 @@ class ArmedAlarm(BaseMQTTAPIView):
             FIELDS_DICTIONARY["security"]["is_alarm_armed"] = serializer.validated_data[
                 "value"
             ]
-            self.publish_mqtt_message(
-                f"security/alarm_armed/status",
-                {"value": FIELDS_DICTIONARY["security"]["is_alarm_armed"]},
-            )
             return Response(
                 {"is_alarm_armed": FIELDS_DICTIONARY["security"]["is_alarm_armed"]},
                 status=status.HTTP_200_OK,
